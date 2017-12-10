@@ -20,7 +20,7 @@ The goals / steps of this project are the following:
 [image4]: ./output_images/undistorted_points_drawn.jpg "Warp Example"
 [image5]: ./output_images/birdeye.jpg "Warp Example"
 [image6]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image7]: ./examples/example_output.jpg "Output"
+[image7]: ./output_images/pipeline_output/test1.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
 
@@ -81,13 +81,25 @@ I verified that my perspective transform was working as expected by drawing the 
 ![alt text][image5]
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+Inside `helperFunctions.py`, the `detectLane(image)` takes a warped, binary image and finds the pixel that represents the lane lines, and then try to fit 2nd order polynomial lines. The function draw the left and the right fits on the image and return the result.
 
 ![alt text][image6]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+I did this using the code below:
+
+```python
+ym_per_pix = 3.0/72.0 # meters per pixel in y dimension
+xm_per_pix = 3.7/660.0 # meters per pixel in x dimension
+y_eval = 700
+midx = 650
+
+y1 = (2*left_fit[0]*y_eval + left_fit[1])*xm_per_pix/ym_per_pix
+y2 = 2*left_fit[0]*xm_per_pix/(ym_per_pix*ym_per_pix)
+
+curvature = ((1 + y1*y1)**(1.5))/np.absolute(y2)
+```
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
@@ -101,7 +113,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./output.mp4)
 
 ---
 
@@ -109,4 +121,4 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+I need to play with threshold function's arguments, threshold ranges, to get a better binary image result, where the line pixels are more visible then rest of the pixels. Perhaps applying a mask to the image to omit upper half of the picture and leave only the area where the lane lines located.  
