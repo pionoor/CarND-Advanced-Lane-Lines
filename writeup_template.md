@@ -20,7 +20,7 @@ The goals / steps of this project are the following:
 [image4]: ./output_images/undistorted_points_drawn.jpg "Warp Example"
 [image5]: ./output_images/birdeye.jpg "Warp Example"
 [image6]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image7]: ./oput_images/pipeline_output/test1.jpg "Output"
+[image7]: ./output_images/pipeline_output/test1.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
 
@@ -113,7 +113,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./output.mp4)
 
 ---
 
@@ -121,4 +121,4 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+I need to play with threshold function's arguments, threshold ranges, to get a better binary image result, where the line pixels are more visible then rest of the pixels. Perhaps applying a mask to the image to omit upper half of the picture and leave only the area where the lane lines located.  
