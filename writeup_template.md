@@ -20,7 +20,7 @@ The goals / steps of this project are the following:
 [image4]: ./output_images/undistorted_points_drawn.jpg "Warp Example"
 [image5]: ./output_images/birdeye.jpg "Warp Example"
 [image6]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image7]: ./examploutput_images/pipeline_output/test1.jpg "Output"
+[image7]: ./oput_images/pipeline_output/test1.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
 
