@@ -23,13 +23,13 @@ def display2ImgsSideBySide(leftImgTitle, rightImgTitle, leftImg, rightImg):
 def undistort(image, mtx, dist):
     return cv2.undistort(image, mtx, dist, None, mtx)  
 
-def threshold(image, thresh_min = 20, thresh_max = 100, s_thresh_min = 170, s_thresh_max = 255):
-    
+
+
+def threshold(image, thresh_min = 50, thresh_max = 250, s_thresh_min = 200, s_thresh_max = 255):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0) # Take the derivative in x
     abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal 
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
-
     sxbinary = np.zeros_like(scaled_sobel)
     sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
     # Convert to HLS color space and separate the S channel
@@ -39,7 +39,6 @@ def threshold(image, thresh_min = 20, thresh_max = 100, s_thresh_min = 170, s_th
     s_binary = np.zeros_like(sChannel)
     s_binary[(sChannel >= s_thresh_min) & (sChannel <= s_thresh_max)] = 1
 
-    
     # Stack each channel to view their individual contributions in green and blue respectively
     # This returns a stack of the two binary images, whose components you can see as different colors
 
@@ -48,7 +47,7 @@ def threshold(image, thresh_min = 20, thresh_max = 100, s_thresh_min = 170, s_th
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
     combined_binary = combined_binary * 255
     
-    return combined_binary
+    return combined_binary         
     
 def transform(image):
     imgShape = image.shape
@@ -73,6 +72,28 @@ def transform(image):
     Minv = cv2.getPerspectiveTransform(dstPoints, srcPoints)
     result = cv2.warpPerspective(image, M, imgSize, flags=cv2.INTER_LINEAR)
     return (Minv, result)
+
+def maskImage(img):
+
+    shape = img.shape
+    vertices = np.array([[(0,0),(shape[1],0),(shape[1],0),(6*shape[1]/7,shape[0]),
+                      (shape[1]/7,shape[0]), (0,0)]],dtype=np.int32)
+
+    mask = np.zeros_like(img)   
+    
+    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
+    if len(img.shape) > 2:
+        channel_count = img.shape[3]  # i.e. 3 or 4 depending on your image
+        ignore_mask_color = (255,) * channel_count
+    else:
+        ignore_mask_color = 255
+        
+    #filling pixels inside the polygon defined by "vertices" with the fill color    
+    cv2.fillPoly(mask, vertices, ignore_mask_color)
+    
+    #returning the image only where mask pixels are nonzero
+    masked_image = cv2.bitwise_and(img, mask)
+    return masked_image
 
 # detect lane pixles and return lift and right fits.
 def detectLane(image):
@@ -177,12 +198,19 @@ def drawLane(undistortedImg, binary_warped, left_fit, right_fit, Minv):
 
     # Combine the result with the original image
     result = cv2.addWeighted(undistortedImg, 1, newwarp, 0.3, 0)
+    y1 = (2*left_fit[0]*y_eval + left_fit[1])*xm_per_pix/ym_per_pix
+    y2 = 2*left_fit[0]*xm_per_pix/(ym_per_pix*ym_per_pix)
 
-    #cv2.putText(result,'Radius of Curvature: %.2fm' % curvature,(20,40), cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),2)
+    curvature = ((1 + y1*y1)**(1.5))/np.absolute(y2)
+    cv2.putText(result,'Radius of Curvature: %.2fm' % curvature,(20,40), cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),2)
     x_left_pix = left_fit[0]*(y_eval**2) + left_fit[1]*y_eval + left_fit[2]
     x_right_pix = right_fit[0]*(y_eval**2) + right_fit[1]*y_eval + right_fit[2]
     position_from_center = ((x_left_pix + x_right_pix)/2 - midx) * xm_per_pix
-    
+    if position_from_center < 0:
+        text = 'left'
+    else:
+        text = 'right'
+    cv2.putText(result,'Distance From Center: %.2fm %s' % (np.absolute(position_from_center), text),(20,80), cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),2)
     return result
 
 
@@ -190,12 +218,13 @@ def drawLane(undistortedImg, binary_warped, left_fit, right_fit, Minv):
 def pipeline(image, mtx=global_mtx, dist=global_dist):
     
     undistortedImg = undistort(image, mtx, dist)
-    combined_binary = threshold(undistortedImg, thresh_min = 20, thresh_max = 100, s_thresh_min = 170, s_thresh_max = 255)
+    combined_binary = threshold(undistortedImg)
     Minv, binary_warped = transform(combined_binary)
-    left_fit, right_fit, out_img = detectLane(binary_warped)
-    result = drawLane(undistortedImg, binary_warped, left_fit, right_fit, Minv)
-    
+    masked = maskImage(binary_warped)
+    left_fit, right_fit, out_img = detectLane(masked)
+    result = drawLane(undistortedImg, masked, left_fit, right_fit, Minv)
     return result
+
 
 def calibrateCam(folderPath, nx=9, ny=6):
     localPath = 'camera_cal/'
