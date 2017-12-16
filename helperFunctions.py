@@ -25,7 +25,9 @@ def undistort(image, mtx, dist):
 
 
 
-def threshold(image, thresh_min = 50, thresh_max = 250, s_thresh_min = 200, s_thresh_max = 255):
+def threshold(image, thresh_min = 50, thresh_max = 250, s_thresh_min = 150, s_thresh_max = 255):
+    
+    
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0) # Take the derivative in x
     abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal 
@@ -47,18 +49,18 @@ def threshold(image, thresh_min = 50, thresh_max = 250, s_thresh_min = 200, s_th
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
     combined_binary = combined_binary * 255
     
-    return combined_binary         
+    return combined_binary 
     
 def transform(image):
     imgShape = image.shape
     imgSize = (imgShape[1], imgShape[0]) # Image shape
     # The four points used as src points
-    bottomLeft = [170,710] 
-    bottomRight = [1150,710]
-    topLeft = [570, 470]
-    topRight = [720, 470]
+    bottomLeft = [170,700] 
+    bottomRight = [1150,700]
+    topLeft = [570, 460]
+    topRight = [720, 460]
 
-    offset = 210;
+    offset = 230;
     # for dst points
     distBottomLeft = [170 + offset, 710] 
     distBottomRight = [1150 - offset, 710]
@@ -73,31 +75,33 @@ def transform(image):
     result = cv2.warpPerspective(image, M, imgSize, flags=cv2.INTER_LINEAR)
     return (Minv, result)
 
-def maskImage(img):
+def areaOfInterest(img):
 
-    shape = img.shape
-    vertices = np.array([[(0,0),(shape[1],0),(shape[1],0),(6*shape[1]/7,shape[0]),
-                      (shape[1]/7,shape[0]), (0,0)]],dtype=np.int32)
+ 
+    leftLaneVertices = np.array([[(400, 720),(360, 0), (550, 0), (460, 720)]], dtype=np.int32)
+    rightLaneVertices = np.array([[(880, 720),(810, 0), (1100, 0), (920, 720)]], dtype=np.int32)
+  
 
     mask = np.zeros_like(img)   
-    
     #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
     if len(img.shape) > 2:
-        channel_count = img.shape[3]  # i.e. 3 or 4 depending on your image
+        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
         ignore_mask_color = (255,) * channel_count
     else:
         ignore_mask_color = 255
         
     #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
+    cv2.fillPoly(mask, leftLaneVertices, ignore_mask_color)
+    cv2.fillPoly(mask, rightLaneVertices, ignore_mask_color)
+
+
     #returning the image only where mask pixels are nonzero
     masked_image = cv2.bitwise_and(img, mask)
     return masked_image
 
 # detect lane pixles and return lift and right fits.
 def detectLane(image):
-    binary_warped = image #cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    binary_warped = image 
     histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
     # Create an output image to draw on and  visualize the result
     out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
@@ -176,11 +180,11 @@ def detectLane(image):
 
 
 def drawLane(undistortedImg, binary_warped, left_fit, right_fit, Minv):
-    
-    ym_per_pix = 3.0/72.0 # meters per pixel in y dimension
-    xm_per_pix = 3.7/660.0 # meters per pixel in x dimension
+
+    ym_per_pix = 30/720.0 # meters per pixel in y dimension
+    xm_per_pix = 3.7/525.0 # meters per pixel in x dimension
     y_eval = 700
-    midx = 650
+    midx = 680
 
     #binary_warped = cv2.cvtColor(binary_warped, cv2.COLOR_BGR2GRAY)
     warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
@@ -220,7 +224,7 @@ def pipeline(image, mtx=global_mtx, dist=global_dist):
     undistortedImg = undistort(image, mtx, dist)
     combined_binary = threshold(undistortedImg)
     Minv, binary_warped = transform(combined_binary)
-    masked = maskImage(binary_warped)
+    masked = areaOfInterest(binary_warped)
     left_fit, right_fit, out_img = detectLane(masked)
     result = drawLane(undistortedImg, masked, left_fit, right_fit, Minv)
     return result
